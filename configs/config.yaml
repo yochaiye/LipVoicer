@@ -1,0 +1,48 @@
+# this file is an adapated version https://github.com/albertfgu/diffwave-sashimi, licensed
+# under https://github.com/albertfgu/diffwave-sashimi/blob/master/LICENSE
+
+defaults:
+  - _self_
+  - experiment: lipvoicer
+
+train: # Not used in generate.py
+  name: null # Name of experiment (prefix of experiment name)
+  save_dir: null # where checkpoints will be saved
+  ckpt_iter: max # continue training from a specific iteration
+  iters_per_ckpt: 10000
+  iters_per_logging: 100
+  n_iters: 1000001
+  learning_rate: 2e-4
+  batch_size_per_gpu: 8
+
+generate:
+  name: null
+  ckpt_iter: max # Which checkpoint to use assign a number or "max". Is ignored when sampling during training
+  n_samples: 4 # Number of utterances to be generated 
+  video_path: null 
+  guidance_factor: 2 # w1 in the paper
+  asr_scale: 1.1 # w2 in the paper
+  asr_start: 250 # t_asr
+  save_dir: null # where to save the generated audio
+  lipread_text_dir: /dsi/gannot-lab2/datasets2/LRS3/lip2text/test/ma # directory with predicted text for benchmark dataset 
+  dataset_div: null # use this to speed up benchmark dataset generation by using several GPUs
+
+spec:
+  sampling_rate: 16000
+  filter_length: 640
+  hop_length: 160
+  win_length: 640
+  mel_fmin: 20.0
+  mel_fmax: 8000.0
+
+distributed:
+  dist_backend: nccl
+  dist_url: tcp://localhost:54321 #54321
+
+wandb:
+  mode: disabled #disabled # Pass in 'wandb.mode=online' to turn on wandb logging
+  group: diffwave_lips2mel
+  project: LipVoicer
+  entity: null
+  id: null # Set to string to resume logging from run
+  job_type: training
