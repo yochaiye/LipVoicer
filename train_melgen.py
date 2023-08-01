@@ -168,7 +168,7 @@ def train(
                     save_dir=generate_cfg.save_dir,
                     ckpt_iter="max",
                     n_samples=generate_cfg.n_samples,
-                    guidance_factor=generate_cfg.guidance_factor,
+                    w_video=generate_cfg.w_video,
                 )
                 # samples = [wandb.Audio(sample.squeeze().cpu(), sample_rate=dataset_cfg['sampling_rate']) for sample in samples]
                 # wandb.log(

@@ -27,9 +27,9 @@ from utils import find_max_epoch, print_size, calc_diffusion_hyperparams, local_
 
 
 def sampling(net, diffusion_hyperparams,
-            guidance_factor, condition=None, 
+            w_video, condition=None, 
             asr_guidance_net=None,
-            asr_scale=None,
+            w_asr=None,
             asr_start=None,
             guidance_text=None,
             tokenizer=None,
@@ -68,7 +68,7 @@ def sampling(net, diffusion_hyperparams,
             diffusion_steps = (t * torch.ones((x.shape[0], 1))).cuda()  # use the corresponding reverse step
             epsilon_theta = net(x, mouthroi, face_image, diffusion_steps, cond_drop_prob=0)   # predict \epsilon according to \epsilon_\theta
             epsilon_theta_uncond = net(x, mouthroi, face_image, diffusion_steps, cond_drop_prob=1)
-            epsilon_theta = (1+guidance_factor) * epsilon_theta - guidance_factor * epsilon_theta_uncond
+            epsilon_theta = (1+w_video) * epsilon_theta - w_video * epsilon_theta_uncond
             
             if asr_guidance_net is not None and t <= asr_start:
                 with torch.enable_grad():
@@ -80,7 +80,7 @@ def sampling(net, diffusion_hyperparams,
                     asr_grad = torch.autograd.grad(batch_losses["loss"], inputs[0])[0]
                     asr_guidance_net.device = torch.device("cpu")
                 grad_normaliser = torch.norm(epsilon_theta / torch.sqrt(1 - Alpha_bar[t])) / torch.norm(asr_grad)
-                epsilon_theta = epsilon_theta + torch.sqrt(1 - Alpha_bar[t]) * asr_scale * grad_normaliser * asr_grad
+                epsilon_theta = epsilon_theta + torch.sqrt(1 - Alpha_bar[t]) * w_asr * grad_normaliser * asr_grad
 
             x = (x - (1-Alpha[t])/torch.sqrt(1-Alpha_bar[t]) * epsilon_theta) / torch.sqrt(Alpha[t])  # update x_{t-1} to \mu_\theta(x_t)
             if t > 0:
@@ -106,8 +106,8 @@ def generate(
         dataset_div,
         ckpt_iter="max",
         name=None,
-        guidance_factor=0,
-        asr_scale=1.1,
+        w_video=0,
+        w_asr=1.1,
         asr_start=250,
         save_dir=None,
         lipread_text_dir=None,
@@ -175,8 +175,8 @@ def generate(
     dataset = LipVoicerDataset('test', **dataset_cfg)
     
 
-    guidance_dir_name = f'w={guidance_factor}'
-    guidance_dir_name += f'_asr_scale={asr_scale}_asr_start={asr_start}'
+    guidance_dir_name = f'w={w_video}'
+    guidance_dir_name += f'_w_asr={w_asr}_asr_start={asr_start}'
     _output_directory = os.path.join(output_directory, guidance_dir_name)
     os.makedirs(_output_directory, exist_ok=True)
     print("saving to output directory", _output_directory)
@@ -203,10 +203,10 @@ def generate(
 
         melspec = sampling(net, 
                         diffusion_hyperparams,
-                        guidance_factor,
+                        w_video,
                         condition=(mouthroi.cuda(), face_image.cuda()),
                         asr_guidance_net=asr_guidance_net,
-                        asr_scale=asr_scale,
+                        w_asr=w_asr,
                         asr_start=asr_start,
                         guidance_text=text,
                         tokenizer=tokenizer,

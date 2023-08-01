@@ -61,6 +61,7 @@ collate_fn = nnet.CollateFn(
     inputs_params=[{"axis": 1, "padding": True}, {"axis": 4}],
     targets_params=({"axis": 2, "padding": True}, {"axis": 5}),
 )
+
 training_dataset = nnet.datasets.LRS(
                     root="/dsi/gannot-lab/datasets2/",
                     batch_size=batch_size,
@@ -72,36 +73,8 @@ training_dataset = nnet.datasets.LRS(
                     prepare=False,
                     workers_prepare=8
                     )
-# training_dataset = nnet.datasets.MultiDataset(
-#     batch_size=batch_size,
-#     collate_fn=collate_fn,
-#     datasets=[
-#         nnet.datasets.LRS(
-#             batch_size=None,
-#             collate_fn=None,
-#             version="LRS2",
-#             mode="pretrain+train+val",
-#             audio_max_length=audio_max_length,
-#             load_video=load_video,
-#         ),
-#         nnet.datasets.LRS(
-#             batch_size=batch_size,
-#             collate_fn=collate_fn,
-#             version="LRS3",
-#             mode="pretrain+trainval",
-#             audio_max_length=audio_max_length,
-#             load_video=load_video,
-#         ),
-#     ],
-# )
+
 evaluation_dataset = [
-    # nnet.datasets.LRS(
-    #     batch_size=batch_size,
-    #     collate_fn=collate_fn,
-    #     version="LRS2",
-    #     mode="test",
-    #     load_video=load_video,
-    # ),
     nnet.datasets.LRS(
         root="/dsi/gannot-lab/datasets2/",
         batch_size=batch_size,
@@ -110,4 +83,27 @@ evaluation_dataset = [
         mode="test",
         load_video=load_video
     ),
+
+# training_dataset = nnet.datasets.LRS(
+#                     root="/dsi/gannot-lab/datasets2/",
+#                     batch_size=batch_size,
+#                     collate_fn=collate_fn,
+#                     version="LRS2",
+#                     mode="pretrain+train",
+#                     audio_max_length=audio_max_length,
+#                     load_video=load_video,
+#                     prepare=False,
+#                     workers_prepare=8
+#                     )
+
+
+# evaluation_dataset = [
+#     nnet.datasets.LRS(
+#         root="/dsi/gannot-lab/datasets2/",
+#         batch_size=batch_size,
+#         collate_fn=collate_fn,
+#         version="LRS2",
+#         mode="test",
+#         load_video=load_video
+#     ),
 ]

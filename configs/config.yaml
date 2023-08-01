@@ -20,8 +20,8 @@ generate:
   ckpt_iter: max # Which checkpoint to use assign a number or "max". Is ignored when sampling during training
   n_samples: 4 # Number of utterances to be generated 
   video_path: null 
-  guidance_factor: 2 # w1 in the paper
-  asr_scale: 1.1 # w2 in the paper
+  w_video: 2 # w1 in the paper
+  w_asr: 1.1 # w2 in the paper
   asr_start: 250 # t_asr
   save_dir: null # where to save the generated audio
   lipread_text_dir: /dsi/gannot-lab2/datasets2/LRS3/lip2text/test/ma # directory with predicted text for benchmark dataset 

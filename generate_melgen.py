@@ -24,7 +24,7 @@ from dataloaders.stft import denormalise_mel
 
 from utils import find_max_epoch, print_size, calc_diffusion_hyperparams, local_directory
 
-def sampling(net, diffusion_hyperparams, guidance_factor, condition=None):
+def sampling(net, diffusion_hyperparams, w_video, condition=None):
     """
     Perform the complete sampling step according to p(x_0|x_T) = \prod_{t=1}^T p_{\theta}(x_{t-1}|x_t)
 
@@ -52,7 +52,7 @@ def sampling(net, diffusion_hyperparams, guidance_factor, condition=None):
             diffusion_steps = (t * torch.ones((x.shape[0], 1))).cuda()  # use the corresponding reverse step
             epsilon_theta = net(x, mouthroi, face_image, diffusion_steps, cond_drop_prob=0)   # predict \epsilon according to \epsilon_\theta
             epsilon_theta_uncond = net(x, mouthroi, face_image, diffusion_steps, cond_drop_prob=1)
-            epsilon_theta = (1+guidance_factor) * epsilon_theta - guidance_factor * epsilon_theta_uncond
+            epsilon_theta = (1+w_video) * epsilon_theta - w_video * epsilon_theta_uncond
 
             x = (x - (1-Alpha[t])/torch.sqrt(1-Alpha_bar[t]) * epsilon_theta) / torch.sqrt(Alpha[t])  # update x_{t-1} to \mu_\theta(x_t)
             if t > 0:
@@ -70,7 +70,7 @@ def generate(
         ckpt_iter="max",
         name=None,
         n_samples=None,
-        guidance_factor=0,
+        w_video=0,
     ):
     """
     Generate melspectrograms based on lips movement
@@ -150,7 +150,7 @@ def generate(
         _melspec = sampling(
             net,
             diffusion_hyperparams,
-            guidance_factor,
+            w_video,
             condition=(mouthroi[i].cuda(), face_image[i].cuda()),
         )
         generated_melspec.append(denormalise_mel(_melspec))
@@ -164,7 +164,7 @@ def generate(
     # save audio to .wav
     for i in range(n_samples):
         # save as image
-        outfile = f'{ckpt_iter // 1000}k_{i}_w={guidance_factor}.png'
+        outfile = f'{ckpt_iter // 1000}k_{i}_w={w_video}.png'
         matplotlib.image.imsave(os.path.join(output_directory, outfile),
                                 generated_melspec[i].squeeze(0).cpu().numpy()[::-1])     # squeeze is for getting rid of the batch dim
         matplotlib.image.imsave(os.path.join(output_directory, f'gt{i}.png'),
