@@ -1,33 +1,32 @@
-# this file is an adapated version https://github.com/albertfgu/diffwave-sashimi, licensed
-# under https://github.com/albertfgu/diffwave-sashimi/blob/master/LICENSE
 
-defaults:
-  - _self_
-  - experiment: lipvoicer
+melgen:
+  _name_: melgen
+  in_channels: 80
+  out_channels: 80
+  diffusion_step_embed_dim_in: 128
+  diffusion_step_embed_dim_mid: 512
+  diffusion_step_embed_dim_out: 512
+  res_channels: 512
+  skip_channels: 512
+  num_res_layers: 12
+  dilation_cycle: 1
+  mel_upsample: [2, 2]
 
-train: # Not used in generate.py
-  name: null # Name of experiment (prefix of experiment name)
-  save_dir: null # where checkpoints will be saved
-  ckpt_iter: max # continue training from a specific iteration
-  iters_per_ckpt: 10000
-  iters_per_logging: 100
-  n_iters: 1000001
-  learning_rate: 2e-4
-  batch_size_per_gpu: 8
+diffusion:
+  T: 400
+  beta_0: 0.0001
+  beta_T: 0.02
+  beta: null
 
-generate:
-  name: null
-  ckpt_iter: max # Which checkpoint to use assign a number or "max". Is ignored when sampling during training
-  n_samples: 4 # Number of utterances to be generated 
-  video_path: null 
-  w_video: 2 # w1 in the paper
-  w_asr: 1.1 # w2 in the paper
-  asr_start: 250 # t_asr
-  save_dir: null # where to save the generated audio
-  lipread_text_dir: /dsi/gannot-lab2/datasets2/LRS3/lip2text/test/ma # directory with predicted text for benchmark dataset 
-  dataset_div: null # use this to speed up benchmark dataset generation by using several GPUs
+dataset:
+  videos_dir: datasets/LRS3/videos
+  mouthrois_dir: datasets/LRS3/mouth_crops
+  audio_dir: datasets/LRS3/audio
+  sampling_rate: ${audio.sampling_rate}
+  videos_window_size: 25
+  audio_stft_hop: ${audio.hop_length}
 
-spec:
+audio:
   sampling_rate: 16000
   filter_length: 640
   hop_length: 160
@@ -35,14 +34,27 @@ spec:
   mel_fmin: 20.0
   mel_fmax: 8000.0
 
+train: # Not used in generate.py
+  name: LRS3        # Name of experiment (prefix of experiment name)
+  save_dir: null    # where checkpoints will be saved
+  ckpt_iter: max    # continue training from a specific iteration
+  iters_per_ckpt: 10000
+  iters_per_logging: 100
+  n_iters: 1000001
+  learning_rate: 2e-4
+  batch_size_per_gpu: 8
+
+generate:
+  name: LRS3
+  ckpt_path: exp/LRS3/wnet_h512_d12_T400_betaT0.02/checkpoint/1000000.pkl           
+  n_samples: 3          # Number of utterances from test dataset to be generated 
+  video_path: null      # generate audio for a given silent video file
+  w_video: 2            # w1 in the paper
+  w_asr: 1.5            # w2 in the paper
+  asr_start: 270        # t_asr
+  save_dir: null        # where to save the generated audio
+  lipread_text_dir: null # directory with predicted text for generating test samples of benchmark dataset 
+
 distributed:
   dist_backend: nccl
   dist_url: tcp://localhost:54321 #54321
-
-wandb:
-  mode: disabled #disabled # Pass in 'wandb.mode=online' to turn on wandb logging
-  group: diffwave_lips2mel
-  project: LipVoicer
-  entity: null
-  id: null # Set to string to resume logging from run
-  job_type: training

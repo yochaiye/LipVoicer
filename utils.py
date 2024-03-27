@@ -1,4 +1,5 @@
 import os
+from matplotlib import pyplot as plt
 import numpy as np
 import torch
 
@@ -94,22 +95,20 @@ def print_size(net, verbose=False):
 
 
 def local_directory(name, model_cfg, diffusion_cfg, save_dir, output_directory):
-    # tensorboard_directory = train_cfg['tensorboard_directory']
-    # ckpt_path = output_directory # train_cfg['output_directory']
 
     # generate experiment (local) path
     model_name = model_identifier(model_cfg)
     diffusion_name = f"_T{diffusion_cfg['T']}_betaT{diffusion_cfg['beta_T']}"
     local_path = model_name + diffusion_name
 
-    if not (name is None or name == ""):
-        local_path = name + "_" + local_path
 
     # Get shared output_directory ready
-    storage_dir = '/dsi/gannot-lab/users/yochai_yemini/speech_reconstruction'
     if save_dir is None:
         save_dir = os.getcwd()
-    output_directory = os.path.join(save_dir, 'exp', local_path, output_directory)
+    if not (name is None or name == ""):
+        output_directory = os.path.join(save_dir, 'exp', name, local_path, output_directory)
+    else:
+        output_directory = os.path.join(save_dir, 'exp', local_path, output_directory)
     if not os.path.isdir(output_directory):
         os.makedirs(output_directory, exist_ok=True)
         os.chmod(output_directory, 0o775)
@@ -181,3 +180,8 @@ def calc_diffusion_hyperparams(T, beta_0, beta_T, beta=None, fast=False):
     _dh["T"], _dh["Beta"], _dh["Alpha"], _dh["Alpha_bar"], _dh["Sigma"] = T, Beta.cuda(), Alpha.cuda(), Alpha_bar.cuda(), Sigma
     return _dh
 
+
+def plot_melspec(melspec):
+    fig = plt.figure()
+    plt.imshow(melspec[::-1])
+    return fig

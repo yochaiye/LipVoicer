@@ -2,37 +2,32 @@
 # under https://github.com/albertfgu/diffwave-sashimi/blob/master/LICENSE
 
 import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 import time
-# import warnings
-# warnings.filterwarnings("ignore")
+import warnings
+warnings.filterwarnings("ignore")
 from functools import partial
 import multiprocessing as mp
 
 import numpy as np
 import torch
 import torch.nn as nn
+from torch.utils.tensorboard import SummaryWriter
 import hydra
 # import wandb
 from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
 
 from dataloaders import dataloader
-from utils import find_max_epoch, print_size, calc_diffusion_hyperparams, local_directory
+from utils import find_max_epoch, print_size, calc_diffusion_hyperparams, local_directory, plot_melspec
 
 from distributed_util import init_distributed, apply_gradient_allreduce, reduce_tensor
-from generate_melgen import generate
+from inference_melgen import generate
 
 from models.model_builder import ModelBuilder
-from models.audioVisual_model import AudioVisualModel
+from models.audiovisual_model import AudioVisualModel
 
 def distributed_train(rank, num_gpus, group_name, cfg):
-    # Initialize logger
-    if rank == 0 and cfg.wandb is not None:
-        # wandb_cfg = cfg.pop("wandb")
-        # wandb.init(
-        #     **wandb_cfg, config=OmegaConf.to_container(cfg, resolve=True)
-        # )
-        pass
 
     # Distributed running initialization
     dist_cfg = cfg.pop("distributed")
@@ -42,7 +37,7 @@ def distributed_train(rank, num_gpus, group_name, cfg):
     train(
         rank=rank, num_gpus=num_gpus,
         diffusion_cfg=cfg.diffusion,
-        model_cfg=cfg.model,
+        model_cfg=cfg.melgen,
         dataset_cfg=cfg.dataset,
         generate_cfg=cfg.generate,
         **cfg.train,
@@ -66,10 +61,11 @@ def train(
     iters_per_logging (int):        number of iterations to save training log and compute validation loss, default is 100
     learning_rate (float):          learning rate
     batch_size_per_gpu (int):       batchsize per gpu, default is 2 so total batchsize is 16 with 8 gpus
-    n_samples (int):                audio samples to generate and log per checkpoint
     name (str):                     prefix in front of experiment name
-    mel_path (str):                 for vocoding, path to mel spectrograms (TODO generate these on the fly)
     """
+
+    if rank == 0:
+        writer = SummaryWriter(log_dir='logs')
 
     local_path, checkpoint_directory = local_directory(name, model_cfg, diffusion_cfg, save_dir, 'checkpoint')
 
@@ -143,13 +139,9 @@ def train(
             epoch_loss += reduced_loss
 
             # output to log
-            # if n_iter % iters_per_logging == 0 and rank == 0:
+            if n_iter % iters_per_logging == 0 and rank == 0:
                 # save training loss to tensorboard
-                # print("iteration: {} \treduced loss: {} \tloss: {}".format(n_iter, reduced_loss, loss.item()))
-                # wandb.log({
-                #     'train/loss': reduced_loss,
-                #     'train/log_loss': np.log(reduced_loss),
-                # }, step=n_iter)
+                print("iteration: {} \tloss: {}".format(n_iter, reduced_loss))
 
             # save checkpoint
             if n_iter % iters_per_ckpt == 0 and rank == 0:
@@ -165,28 +157,25 @@ def train(
                     rank, # n_iter,
                     diffusion_cfg, model_cfg, dataset_cfg,
                     name=name,
-                    save_dir=generate_cfg.save_dir,
+                    save_dir=save_dir,
                     ckpt_iter="max",
                     n_samples=generate_cfg.n_samples,
                     w_video=generate_cfg.w_video,
                 )
-                # samples = [wandb.Audio(sample.squeeze().cpu(), sample_rate=dataset_cfg['sampling_rate']) for sample in samples]
-                # wandb.log(
-                #     {'inference/audio': samples},
-                #     step=n_iter,
-                #     # commit=False,
-                # )
+                
+                # send images to log
+                for i, (mel, mel_gt) in enumerate(zip(*samples)):
+                    writer.add_figure(f'spec/{i+1}', plot_melspec(mel[0].cpu().numpy()), n_iter)
+                    writer.add_figure(f'spec/{i+1}_gt', plot_melspec(mel_gt[0].cpu().numpy()), n_iter)
 
             n_iter += 1
         if rank == 0:
             epoch_loss /= len(trainloader)
-            # wandb.log({'train/loss_epoch': epoch_loss, 'train/log_loss_epoch': np.log(epoch_loss)}, step=n_iter)
+            writer.add_scalar('train_loss', epoch_loss, n_iter)
 
     # Close logger
     if rank == 0:
-        # tb.close()
-        # wandb.finish()
-        pass
+        writer.close()
 
 def training_loss(net, loss_fn, melspec, mouthroi, face_image, diffusion_hyperparams):
     """

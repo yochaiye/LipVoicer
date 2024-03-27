@@ -183,24 +183,24 @@ class Model(Module):
         self.built = True
 
         # Print
-        if self.rank == 0:
-            print("Built", self.name)
-            print(
-                "losses:",
-                {key: type(value).__name__ for key, value in self.losses.items()},
-            )
-            print(
-                "loss weights:",
-                {key: type(value).__name__ for key, value in self.loss_weights.items()},
-            )
-            print(
-                "metrics:",
-                {key: type(value).__name__ for key, value in self.metrics.items()},
-            )
-            print(
-                "decoders:",
-                {key: type(value).__name__ for key, value in self.decoders.items()},
-            )
+        # if self.rank == 0:
+        #     print("Built", self.name)
+        #     print(
+        #         "losses:",
+        #         {key: type(value).__name__ for key, value in self.losses.items()},
+        #     )
+        #     print(
+        #         "loss weights:",
+        #         {key: type(value).__name__ for key, value in self.loss_weights.items()},
+        #     )
+        #     print(
+        #         "metrics:",
+        #         {key: type(value).__name__ for key, value in self.metrics.items()},
+        #     )
+        #     print(
+        #         "decoders:",
+        #         {key: type(value).__name__ for key, value in self.decoders.items()},
+        #     )
 
     def map_to_outputs(self, outputs, struct):
         """Convenience method to conform `struct` to `outputs` structure.

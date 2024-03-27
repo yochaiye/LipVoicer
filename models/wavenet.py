@@ -46,8 +46,8 @@ class Residual_block(nn.Module):
     def __init__(
             self, res_channels, skip_channels, dilation=1,
             diffusion_step_embed_dim_out=512,
-            unconditional=False,
-            cond_upsample=[16,16],
+            unconditional=True,
+            mel_upsample=[16,16],
             cond_feat_size=640
         ):
         super(Residual_block, self).__init__()
@@ -61,14 +61,14 @@ class Residual_block(nn.Module):
 
         self.unconditional = unconditional
         if not self.unconditional:
-            # add cond upsampler and conditioner conv1x1 layer
+            # add mel spectrogram upsampler and conditioner conv1x1 layer
             self.upsample_conv2d = torch.nn.ModuleList()
-            for s in cond_upsample:
+            for s in mel_upsample:
                 conv_trans2d = torch.nn.ConvTranspose2d(1, 1, (3, 2 * s), padding=(1, s // 2), stride=(1, s))
                 conv_trans2d = torch.nn.utils.weight_norm(conv_trans2d)
                 torch.nn.init.kaiming_normal_(conv_trans2d.weight)
                 self.upsample_conv2d.append(conv_trans2d)
-            self.cond_conv = Conv(cond_feat_size, 2 * self.res_channels, kernel_size=1)
+            self.mel_conv = Conv(cond_feat_size, 2 * self.res_channels, kernel_size=1)  # 80 is mel bands
 
         # residual conv1x1 layer, connect to next residual layer
         self.res_conv = nn.Conv1d(res_channels, res_channels, kernel_size=1)
@@ -80,7 +80,7 @@ class Residual_block(nn.Module):
         self.skip_conv = nn.utils.weight_norm(self.skip_conv)
         nn.init.kaiming_normal_(self.skip_conv.weight)
 
-    def forward(self, input_data, cond=None):
+    def forward(self, input_data, mel_spec=None):
         x, diffusion_step_embed = input_data
         h = x
         B, C, L = x.shape
@@ -95,21 +95,21 @@ class Residual_block(nn.Module):
         # dilated conv layer
         h = self.dilated_conv_layer(h)
 
-        # add (local) conditioner
-        if cond is not None:
+        # add mel spectrogram as (local) conditioner
+        if mel_spec is not None:
             assert not self.unconditional
-            # Upsample to size of audio
-            cond = torch.unsqueeze(cond, dim=1)
-            cond = F.leaky_relu(self.upsample_conv2d[0](cond), 0.4)
-            cond = F.leaky_relu(self.upsample_conv2d[1](cond), 0.4)
-            cond = torch.squeeze(cond, dim=1)
+            # Upsample spectrogram to size of audio
+            mel_spec = torch.unsqueeze(mel_spec, dim=1)
+            mel_spec = F.leaky_relu(self.upsample_conv2d[0](mel_spec), 0.4)
+            mel_spec = F.leaky_relu(self.upsample_conv2d[1](mel_spec), 0.4)
+            mel_spec = torch.squeeze(mel_spec, dim=1)
 
-            assert(cond.size(2) >= L)
-            if cond.size(2) > L:
-                cond = cond[:, :, :L]
+            assert(mel_spec.size(2) >= L)
+            if mel_spec.size(2) > L:
+                mel_spec = mel_spec[:, :, :L]
 
-            cond = self.cond_conv(cond)
-            h = h + cond
+            mel_spec = self.mel_conv(mel_spec)
+            h = h + mel_spec
 
         # gated-tanh nonlinearity
         out = torch.tanh(h[:,:self.res_channels,:]) * torch.sigmoid(h[:,self.res_channels:,:])
@@ -128,7 +128,7 @@ class Residual_group(nn.Module):
                  diffusion_step_embed_dim_mid=512,
                  diffusion_step_embed_dim_out=512,
                  unconditional=False,
-                 cond_upsample=[16,16],
+                 mel_upsample=[16,16],
                  cond_feat_size=640,
                  ):
         super(Residual_group, self).__init__()
@@ -146,10 +146,10 @@ class Residual_group(nn.Module):
                                                        dilation=2 ** (n % dilation_cycle),
                                                        diffusion_step_embed_dim_out=diffusion_step_embed_dim_out,
                                                        unconditional=unconditional,
-                                                       cond_upsample=cond_upsample,
+                                                       mel_upsample=mel_upsample,
                                                        cond_feat_size=cond_feat_size))
 
-    def forward(self, input_data, cond=None):
+    def forward(self, input_data, mel_spec=None):
         x, diffusion_steps = input_data
 
         # embed diffusion step t
@@ -161,7 +161,7 @@ class Residual_group(nn.Module):
         h = x
         skip = 0
         for n in range(self.num_res_layers):
-            h, skip_n = self.residual_blocks[n]((h, diffusion_step_embed), cond=cond)  # use the output from last residual layer
+            h, skip_n = self.residual_blocks[n]((h, diffusion_step_embed), mel_spec=mel_spec)  # use the output from last residual layer
             skip = skip + skip_n  # accumulate all skip outputs
             # skip += skip_n  # accumulate all skip outputs
 
@@ -175,7 +175,7 @@ class WaveNet(nn.Module):
                  diffusion_step_embed_dim_mid=512,
                  diffusion_step_embed_dim_out=512,
                  unconditional=False,
-                 cond_upsample=[16,16],
+                 mel_upsample=[16,16],
                  **kwargs):
         super().__init__()
         self.res_channels = res_channels
@@ -194,7 +194,7 @@ class WaveNet(nn.Module):
                                              diffusion_step_embed_dim_in=diffusion_step_embed_dim_in,
                                              diffusion_step_embed_dim_mid=diffusion_step_embed_dim_mid,
                                              diffusion_step_embed_dim_out=diffusion_step_embed_dim_out,
-                                             cond_upsample=cond_upsample,
+                                             mel_upsample=mel_upsample,
                                              unconditional=unconditional,
                                              cond_feat_size=cond_feat_size)
 
@@ -208,13 +208,13 @@ class WaveNet(nn.Module):
 
         x = audio
         x = self.init_conv(x)
-        x = self.residual_layer((x, diffusion_steps), cond=cond)
+        x = self.residual_layer((x, diffusion_steps), mel_spec=cond)
         x = self.final_conv(x)
 
         return x
 
     def __repr__(self):
-        return f"wavenet_h{self.res_channels}_d{self.num_res_layers}"
+        return f"wavenet_h{self.res_channels}_d{self.num_res_layers}_{'uncond' if self.unconditional else 'cond'}"
 
     @classmethod
     def name(cls, cfg):

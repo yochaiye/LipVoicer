@@ -1,8 +1,0 @@
-_name_: lipvoicer
-dataset_path: /dsi/gannot-lab2/datasets2/LRS3
-mouthrois_dir: /dsi/gannot-lab2/datasets2/LRS3/mouth_crops
-audio_dir: /dsi/gannot-lab2/datasets2/LRS3/audio_only
-sampling_rate: 16000
-videos_window_size: 25
-audio_stft_hop: 160
-

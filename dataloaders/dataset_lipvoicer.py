@@ -12,12 +12,12 @@ from glob import glob
 from pathlib import Path
 import numpy as np
 from PIL import Image, ImageEnhance
-from video_reader import VideoReader
-from lipreading_utils import *
+from .video_reader import VideoReader
+from .lipreading_utils import *
 import cv2
 import torchaudio
 import torchvision.transforms as transforms
-from stft import normalise_mel
+from .stft import normalise_mel
 
 
 def files_to_list(data_path, suffix):
@@ -40,12 +40,12 @@ class LipVoicerDataset(torch.utils.data.Dataset):
     This is the main class that calculates the spectrogram and returns the
     spectrogram, audio pair.
     """
-    def __init__(self, split, dataset_path, mouthrois_dir, audio_dir, sampling_rate, videos_window_size, audio_stft_hop):
+    def __init__(self, split, videos_dir, mouthrois_dir, audio_dir, sampling_rate, videos_window_size, audio_stft_hop):
         self.mouthrois_dir = mouthrois_dir
-        if "LRS3" in dataset_path:
+        if "LRS3" in videos_dir:
             self.ds_name = "LRS3"
             split_dir = ['pretrain','trainval'] if split in ['train', 'val'] else ['test']
-            self.videos_dir = dataset_path
+            self.videos_dir = videos_dir
             self.audio_dir = audio_dir
             
             self.moutroi_files = []
@@ -53,7 +53,7 @@ class LipVoicerDataset(torch.utils.data.Dataset):
                 _mouthrois_dir = os.path.join(mouthrois_dir, s)
                 self.moutroi_files += files_to_list(_mouthrois_dir, 'npz')
 
-        elif "LRS2" in dataset_path:
+        elif "LRS2" in videos_dir:
             self.ds_name = "LRS2"
             split_dir = ['main']
             if split == 'train':
@@ -63,9 +63,9 @@ class LipVoicerDataset(torch.utils.data.Dataset):
             for s in split_dir:
                 if s == "main":
                     if split == "pretrain":
-                        videos_list_file = os.path.join(dataset_path, "mvlrs_v1", "train.txt")
+                        videos_list_file = os.path.join(videos_dir, "train.txt")
                     else:
-                        videos_list_file = os.path.join(dataset_path, "mvlrs_v1", split+".txt")
+                        videos_list_file = os.path.join(videos_dir, split+".txt")
                     with open(videos_list_file, "r") as f:
                         _video_ids = f.readlines()
                     for _vid in _video_ids:
@@ -76,27 +76,9 @@ class LipVoicerDataset(torch.utils.data.Dataset):
                 elif s == "pretrain":
                     self.moutroi_files += glob(os.path.join(mouthrois_dir, "pretrain", "**/*.npz"), recursive=True)
                     
-            self.videos_dir = os.path.join(dataset_path, "mvlrs_v1")
+            self.videos_dir = videos_dir
             self.audio_dir = audio_dir
-            self.moutroi_files = sorted(self.moutroi_files)
-        
-        elif "GRID" in dataset_path:
-            self.ds_name = "GRID"
-            if "unseen" in dataset_path:
-                videos_list_file = f"/dsi/gannot-lab/datasets2/SVTS/svts_file_lists/grid_usneen_{split}.txt"
-            else:
-                videos_list_file = f"/dsi/gannot-lab/datasets2/SVTS/svts_file_lists/grid_seen_{split}.txt"
-            with open(videos_list_file, "r") as f:
-                video_ids = f.readlines()
-
-            self.moutroi_files = []
-            _dataset_path = dataset_path.replace("/seen","").replace("/unseen", "")
-            for vid in video_ids:
-                speaker, video = vid.strip("\n").split("/")
-                vid_filename = os.path.join(_dataset_path, speaker, "video", video)
-                self.moutroi_files.append(vid_filename+".npz")
-            # self.moutroi_files = sorted(self.moutroi_files)
-        
+            self.moutroi_files = sorted(self.moutroi_files)        
         
         self.test = True if split=='test' else False
         self.videos_window_size = videos_window_size
@@ -117,10 +99,6 @@ class LipVoicerDataset(torch.utils.data.Dataset):
                 video_id = '/'.join([pfilename.parts[-2], pfilename.stem])
                 video_filename = mouthroi_filename.replace(self.mouthrois_dir, self.videos_dir).replace('.npz','.mp4')
                 melspec_filename = mouthroi_filename.replace(self.mouthrois_dir, self.audio_dir).replace('.npz','.wav.spec')
-
-            elif self.ds_name == "GRID":
-                video_filename = mouthroi_filename.replace(".npz", ".mp4")
-                melspec_filename = video_filename.replace("video", "audio").replace(".mp4", ".flac.spec")
             
             # Get mouthroi
             mouthroi = np.load(mouthroi_filename)['data']
@@ -242,11 +220,3 @@ class LipVoicerDataset(torch.utils.data.Dataset):
         txt = txt.lower().strip()
         return txt
 
-
-
-if __name__ == "__main__":
-    dataset_path = "/dsi/gannot-lab2/datasets2/LRS2"
-    mouthrois_dir = "/dsi/gannot-lab2/datasets2/LRS2/mouth_crops"
-    audio_dir = "/dsi/gannot-lab2/datasets2/LRS2/audio_only"
-    ds = LipVoicerDataset('train',dataset_path, mouthrois_dir, audio_dir, 16000, 25, 160)
-    ds[105]

@@ -8,9 +8,7 @@ from .dataset_lipvoicer import LipVoicerDataset
 
 def dataloader(dataset_cfg, batch_size, num_gpus):
 
-    dataset_name = dataset_cfg.pop("_name_")
     dataset = LipVoicerDataset(split='train', **dataset_cfg)
-    dataset_cfg["_name_"] = dataset_name # Restore
 
     # distributed sampler
     train_sampler = DistributedSampler(dataset) if num_gpus > 1 else None

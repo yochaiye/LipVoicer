@@ -54,7 +54,7 @@ class STFT():
 @hydra.main(version_base=None, config_path="../configs/", config_name="config")
 def main(cfg):
 
-    stft = STFT(**cfg.spec)
+    stft = STFT(**cfg.audio)
 
     filepaths = get_all_filenames(cfg.dataset["audio_dir"])
     filepaths = sorted(filepaths)
@@ -72,7 +72,6 @@ def main(cfg):
 
         new_filepath = filepath + '.spec'
         os.makedirs(Path(new_filepath).parent, exist_ok=True)
-        # print(new_filepath)
         torch.save(melspectrogram, new_filepath)
     print(f"max_val={max_val},\n min_val={min_val}")
 

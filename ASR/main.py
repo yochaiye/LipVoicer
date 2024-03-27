@@ -145,7 +145,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config_file", type=str, default="ASR/configs/LRS23/AO/EffConfCTC_noised.py", help="Python configuration file containing model hyperparameters")
     parser.add_argument("-m", "--mode", type=str, default="training", help="Mode : training, evaluation, swa, pass, eval_time")
-    parser.add_argument("-i", "--checkpoint", type=str, default="checkpoints_before_diffusion.ckpt", help="Load model from checkpoint name")
+    parser.add_argument("-i", "--checkpoint", type=str, default="checkpoints_before_finetuning.ckpt", help="Load model from checkpoint name")
     parser.add_argument("-j", "--num_workers", type=int, default=8, help="Number of data loading workers")
     parser.add_argument("--cpu", action="store_true", help="Load model on cpu")
     parser.add_argument("--load_last", action="store_true", help="Load last model checkpoint")
