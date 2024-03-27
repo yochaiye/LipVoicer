@@ -8,6 +8,7 @@
 [Test Files](#benchmarks-test-audio-signals-generated-by-lipvoicer) |
 [Pretrained Models](#pretrained-models) |
 [Inference](#inference) |
+[Training](#training)
 
 </div>
 
