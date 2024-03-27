@@ -12,6 +12,8 @@
 
 </div>
 
+![](https://github.com/yochaiye/LipVoicer/blob/main/LipVoicer.jpg)
+
 ## Authors
 Yochai Yemini, Aviv Shamsian, Lior Bracha, Sharon Gannot and Ethan Fetaya
 
