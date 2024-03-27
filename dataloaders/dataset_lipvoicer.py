@@ -40,13 +40,13 @@ class LipVoicerDataset(torch.utils.data.Dataset):
     This is the main class that calculates the spectrogram and returns the
     spectrogram, audio pair.
     """
-    def __init__(self, split, videos_dir, mouthrois_dir, audio_dir, sampling_rate, videos_window_size, audio_stft_hop):
+    def __init__(self, split, videos_dir, mouthrois_dir, audios_dir, sampling_rate, videos_window_size, audio_stft_hop):
         self.mouthrois_dir = mouthrois_dir
         if "LRS3" in videos_dir:
             self.ds_name = "LRS3"
             split_dir = ['pretrain','trainval'] if split in ['train', 'val'] else ['test']
             self.videos_dir = videos_dir
-            self.audio_dir = audio_dir
+            self.audios_dir = audios_dir
             
             self.moutroi_files = []
             for s in split_dir:
@@ -77,7 +77,7 @@ class LipVoicerDataset(torch.utils.data.Dataset):
                     self.moutroi_files += glob(os.path.join(mouthrois_dir, "pretrain", "**/*.npz"), recursive=True)
                     
             self.videos_dir = videos_dir
-            self.audio_dir = audio_dir
+            self.audios_dir = audios_dir
             self.moutroi_files = sorted(self.moutroi_files)        
         
         self.test = True if split=='test' else False
@@ -98,7 +98,7 @@ class LipVoicerDataset(torch.utils.data.Dataset):
             if self.ds_name in ["LRS3", "LRS2"]:
                 video_id = '/'.join([pfilename.parts[-2], pfilename.stem])
                 video_filename = mouthroi_filename.replace(self.mouthrois_dir, self.videos_dir).replace('.npz','.mp4')
-                melspec_filename = mouthroi_filename.replace(self.mouthrois_dir, self.audio_dir).replace('.npz','.wav.spec')
+                melspec_filename = mouthroi_filename.replace(self.mouthrois_dir, self.audios_dir).replace('.npz','.wav.spec')
             
             # Get mouthroi
             mouthroi = np.load(mouthroi_filename)['data']

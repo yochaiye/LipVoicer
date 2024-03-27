@@ -21,7 +21,7 @@ diffusion:
 dataset:
   videos_dir: datasets/LRS3/videos
   mouthrois_dir: datasets/LRS3/mouth_crops
-  audio_dir: datasets/LRS3/audio
+  audio_dir: datasets/LRS3/audios
   sampling_rate: ${audio.sampling_rate}
   videos_window_size: 25
   audio_stft_hop: ${audio.hop_length}
