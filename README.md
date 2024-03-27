@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[Paper](https://arxiv.org/pdf/2306.03258) |
+[Paper](https://openreview.net/pdf?id=ZZCPSC5OgD) |
 [Introduction](#Introduction) |
 [Preparation](#Preparation) |
 [Benchmark](#Benchmark-evaluation) |
@@ -75,7 +75,7 @@ which will download all pretrained checkpoints and put the in the right place in
 
 Alternatively, you can download individual checkpoint from [Google Drive](https://drive.google.com/drive/u/1/folders/1IdYw_jiKyfBdemiel6XD2rHkbIG12MbM)
 
-## Inference for an In-the-Wild Video
+## Inference forIn-the-Wild Videos
 To generate a speech signal for your video, you first need to edit the following arguments in the hydra [config file](https://github.com/yochaiye/LipVoicer/blob/main/configs/config.yaml)
 
 * `generate.ckpt_path`
@@ -97,22 +97,24 @@ The links are given below:
 
 ## Training
 For training LipVoicer on the benchmark datasets, please download [LRS2](https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html) or [LRS3](https://mmai.io/datasets/lip_reading/). 
-**In all next steps, make sure to adhere to the dataset's structure.**
 
 ### Data Preparation
 Perform the following steps inside the LipVoicer directory:
 1. Extract the audio files from the videos (audio files will be saved in a WAV format)
 ```
-python ...
+python dataloaders/extract_audio_from_video.py --ds_dir <path_to_video_dir>
+                                               --split <trainval/test/...>
+                                               --out_dir <output_directory>
 ```
+The `wav` files will be saved to `output_directory/split`
+
 2. Compute the log mel-spectrograms and save them
    ```
-   cd dataloaders
-   python wav2mel.py dataset.audio_dir=<audio_dir>
-   cd ..
+   python dataloaders/wav2mel.py dataset.audios_dir=<path_to_directory_with_extracted_wav_files>
    ```
+   It will save the mel-spectrograms with extension `.wav.spec`.
 <!---
-3. Detect mouth regions in the videos, convert to greyscale and save to `<mouthrois_dir>`
+3. Crop the mouth regions of the videos, convert to greyscale and save to `<mouthrois_dir>`
 Download option?
 
 ### Train
@@ -123,9 +125,8 @@ CUDA_VISIBLE_DEVICES=<...> python train_melgen.py train.save_dir=<save_dir> \
                                                   dataset.audio_dir=<audio_dir> \
                                                   dataset.mouthrois_dir=<mouthrois_dir>
 ```
-5. Finetune the modified ASR, which now includes the diffusion time-step embedding
-```
-```
+5. Finetune the modified ASR, which now includes the diffusion time-step embedding.
+For further details on how to carry out this step, please refer to [Audio-Visual Efficient Conformer for Robust Speech Recognition](https://github.com/burchim/AVEC/tree/master).
 --->
 
 ## Inference
