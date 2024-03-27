@@ -5,10 +5,9 @@
 [Paper](https://openreview.net/pdf?id=ZZCPSC5OgD) |
 [Demo Page](https://lipvoicer.github.io/) |
 [Introduction](#introduction) |
-[Preparation](#Preparation) |
-[Benchmark](#Benchmark-evaluation) |
-[Inference](#Speech-prediction) |
+[Test Files](#benchmarks-test-audio-signals-generated-by-lipvoicer) |
 [Pretrained Models](#pretrained-models) |
+[Inference](#inference) |
 
 </div>
 
