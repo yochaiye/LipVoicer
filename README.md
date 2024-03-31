@@ -179,6 +179,7 @@ The progress of the training stage is monitored with TensorBoard.
 For further details on how to carry out this step, please refer to [Audio-Visual Efficient Conformer for Robust Speech Recognition](https://github.com/burchim/AVEC/tree/master).
 
 ## Citation
+```
 @inproceedings{
 yemini2024lipvoicer,
 title={LipVoicer: Generating Speech from Silent Videos Guided by Lip Reading},
@@ -186,3 +187,4 @@ author={Yochai Yemini and Aviv Shamsian and Lior Bracha and Sharon Gannot and Et
 booktitle={The Twelfth International Conference on Learning Representations},
 year={2024},
 }
+```
